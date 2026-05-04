@@ -7,7 +7,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && \
 
 COPY requirements.txt /workspace/worker_requirements.txt
 RUN pip install --no-cache-dir -r /workspace/worker_requirements.txt && \
-    pip install --no-cache-dir numpy==1.26.4
+    pip install --no-cache-dir numpy==1.26.4 && \
+    pip install --upgrade torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 COPY handler.py /workspace/
 COPY inference.py /workspace/
