@@ -39,7 +39,9 @@ def setup_symlinks():
                     continue
                 src_file = os.path.join(src, f)
                 dst_file = os.path.join(dst, f)
-                if os.path.isfile(src_file) and not os.path.exists(dst_file):
+                if os.path.isfile(src_file):
+                    if os.path.exists(dst_file) or os.path.islink(dst_file):
+                        os.remove(dst_file)
                     os.symlink(src_file, dst_file)
 
     # GGUF checkpoints also go in diffusion_models
@@ -51,8 +53,9 @@ def setup_symlinks():
             if f.endswith(".gguf"):
                 src_file = os.path.join(ckpt_dir, f)
                 dst_file = os.path.join(diff_dir, f)
-                if not os.path.exists(dst_file):
-                    os.symlink(src_file, dst_file)
+                if os.path.exists(dst_file) or os.path.islink(dst_file):
+                    os.remove(dst_file)
+                os.symlink(src_file, dst_file)
 
 
 def start_comfyui():
