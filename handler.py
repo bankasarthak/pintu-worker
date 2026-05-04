@@ -74,25 +74,49 @@ def start_comfyui():
 
     setup_symlinks()
 
+    log_path = "/tmp/comfyui_startup.log"
+    log_file = open(log_path, "w")
+
     comfyui_process = subprocess.Popen(
         ["python", "main.py", "--listen", "127.0.0.1", "--port", "8188", "--disable-auto-launch"],
         cwd=comfyui_dir,
-        stdout=subprocess.PIPE,
+        stdout=log_file,
         stderr=subprocess.STDOUT,
     )
 
     import httpx
-    for _ in range(90):
+    for attempt in range(90):
         try:
             resp = httpx.get("http://127.0.0.1:8188/system_stats", timeout=5)
             if resp.status_code == 200:
                 print("ComfyUI server is ready")
+                log_file.close()
                 return
         except Exception:
             pass
+
+        if comfyui_process.poll() is not None:
+            log_file.close()
+            with open(log_path) as f:
+                log_content = f.read()
+            raise RuntimeError(
+                f"ComfyUI process exited with code {comfyui_process.returncode}. "
+                f"Output:\n{log_content[-4000:]}"
+            )
+
+        if attempt % 10 == 0 and attempt > 0:
+            print(f"Still waiting for ComfyUI... ({attempt * 2}s elapsed)")
+
         time.sleep(2)
 
-    raise RuntimeError("ComfyUI failed to start within 180 seconds")
+    log_file.close()
+    with open(log_path) as f:
+        log_content = f.read()
+    raise RuntimeError(
+        f"ComfyUI failed to start within 180 seconds. "
+        f"Process alive: {comfyui_process.poll() is None}. "
+        f"Last output:\n{log_content[-4000:]}"
+    )
 
 
 def get_pipeline() -> LightningPipeline:
